@@ -1,29 +1,118 @@
 package jvm.instruction;
 
+import jvm.Utils;
+import jvm.instruction.branch.*;
+import jvm.instruction.constant.*;
+import jvm.instruction.jump.*;
+import jvm.instruction.load.*;
+import jvm.instruction.math.*;
+import jvm.instruction.ref.*;
+import jvm.instruction.store.*;
+
+import static jvm.classfile.Types.*;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 
 @SuppressWarnings("unused")
 public final class Opcodes {
 
-    public static Instruction getInstruction(int opcode, DataInputStream dis) throws IOException {
+    public static Instruction getInstruction(int opcode, DataInputStream dis, CpInfo[] cp) throws IOException {
         return switch (opcode) {
+            case NOP -> new Nop();
+            case ACONST_NULL -> new AConstNull();
+            case ICONST_M1 -> new IConstM1();
             case ICONST_0 -> new IConst0();
             case ICONST_1 -> new IConst1();
+            case ICONST_2 -> new IConst2();
+            case ICONST_3 -> new IConst3();
+            case ICONST_4 -> new IConst4();
+            case ICONST_5 -> new IConst5();
+            case LCONST_0 -> new LConst0();
+            case LCONST_1 -> new LConst1();
+            case FCONST_0 -> new FConst0();
+            case FCONST_1 -> new FConst1();
+            case FCONST_2 -> new FConst2();
+            case DCONST_0 -> new DConst0();
+            case DCONST_1 -> new DConst1();
             case BIPUSH -> new BiPush(dis.readByte());
+            case SIPUSH -> new SiPush(dis.readShort());
+            case ISTORE -> new IStore(dis.readUnsignedByte());
             case ISTORE_0 -> new IStore0();
             case ISTORE_1 -> new IStore1();
             case ISTORE_2 -> new IStore2();
+            case ISTORE_3 -> new IStore3();
+            case ILOAD -> new ILoad(dis.readUnsignedByte());
             case ILOAD_0 -> new ILoad0();
             case ILOAD_1 -> new ILoad1();
             case ILOAD_2 -> new ILoad2();
+            case ILOAD_3 -> new ILoad3();
             case IADD -> new IAdd();
+            case LADD -> new LAdd();
+            case FADD -> new FAdd();
+            case DADD -> new DAdd();
             case ISUB -> new ISub();
+            case LSUB -> new LSub();
+            case FSUB -> new FSub();
+            case DSUB -> new DSub();
+            case IMUL -> new IMul();
+            case LMUL -> new LMul();
+            case FMUL -> new FMul();
+            case DMUL -> new DMul();
+            case IDIV -> new IDiv();
+            case LDIV -> new LDiv();
+            case FDIV -> new FDiv();
+            case DDIV -> new DDiv();
+            case IREM -> new IRem();
+            case LREM -> new LRem();
+            case FREM -> new FRem();
+            case DREM -> new DRem();
+            case INEG -> new INeg();
+            case LNEG -> new LNeg();
+            case FNEG -> new FNeg();
+            case DNEG -> new DNeg();
+            case ISHL -> new IShL();
+            case LSHL -> new LShL();
+            case ISHR -> new IShR();
+            case LSHR -> new LShR();
+            case IUSHR -> new IUShR();
+            case LUSHR -> new LUShR();
+            case IAND -> new IAnd();
+            case LAND -> new LAnd();
+            case IOR -> new IOr();
+            case LOR -> new LOr();
+            case IXOR -> new IXor();
+            case LXOR -> new LXor();
             case IINC -> new IInc(dis.readUnsignedByte(), dis.readByte());
+            case IFEQ -> new IfEq(dis.readShort());
+            case IFNE -> new IfNe(dis.readShort());
+            case IF_ICMPEQ -> new IfICmpEq(dis.readShort());
+            case IF_ICMPNE -> new IfICmpNe(dis.readShort());
             case IF_ICMPLT -> new IfICmpLt(dis.readShort());
+            case IF_ICMPGE -> new IfICmpGe(dis.readShort());
             case IF_ICMPGT -> new IfICmpGt(dis.readShort());
+            case IF_ICMPLE -> new IfICmpLe(dis.readShort());
             case GOTO -> new Goto(dis.readShort());
             case IRETURN -> new IReturn();
+            case RETURN -> new Return();
+            case GETSTATIC ->  {
+                int idx = dis.readUnsignedShort();
+                yield new GetStatic(Utils.getClassNameFromFieldRef(cp, idx),
+                        Utils.getNameFromFieldRef(cp, idx),
+                        Utils.getDescriptorFromFieldRef(cp, idx));
+            }
+            case INVOKEVIRTUAL -> {
+                int idx = dis.readUnsignedShort();
+                yield new InvokeVirtual(Utils.getClassNameFromMethodRef(cp, idx),
+                        Utils.getNameFromMethodRef(cp, idx),
+                        Utils.getDescriptorFromMethodRef(cp, idx));
+            }
+            case INVOKESTATIC -> {
+                int idx = dis.readUnsignedShort();
+                yield new InvokeStatic(Utils.getClassNameFromMethodRef(cp, idx),
+                        Utils.getNameFromMethodRef(cp, idx),
+                        Utils.getDescriptorFromMethodRef(cp, idx));
+            }
             default -> throw new IllegalStateException(String.format("Unimplemented opcode: 0x%x\n", opcode));
         };
     }
@@ -203,10 +292,35 @@ public final class Opcodes {
     public static final int IRETURN = 0xac;
     public static final int LRETURN = 0xad;
     public static final int FRETURN = 0xae;
-
-
-
-
-
+    public static final int DRETURN = 0xaf;
+    public static final int ARETURN = 0xb0;
+    public static final int RETURN = 0xb1;
+    public static final int GETSTATIC = 0xb2;
+    public static final int PUTSTATIC = 0xb3;
+    public static final int GETFIELD = 0xb4;
+    public static final int PUTFIELD = 0xb5;
+    public static final int INVOKEVIRTUAL = 0xb6;
+    public static final int INVOKESPECIAL = 0xb7;
+    public static final int INVOKESTATIC = 0xb8;
+    public static final int INVOKEINTERFACE = 0xb9;
+    public static final int INVOKEDYNAMIC = 0xba;
+    public static final int NEW = 0xbb;
+    public static final int NEWARRAY = 0xbc;
+    public static final int ANEWARRAY = 0xbd;
+    public static final int ARRAYLENGTH = 0xbe;
+    public static final int ATHROW = 0xbf;
+    public static final int CHECKCAST = 0xc0;
+    public static final int INSTANCEOF = 0xc1;
+    public static final int MONITORENTER = 0xc2;
+    public static final int MONITOREXIT = 0xc3;
+    public static final int WIDE = 0xc4;
+    public static final int MULTIANEWARRAY = 0xc5;
+    public static final int IFNULL = 0xc6;
+    public static final int IFNONNULL = 0xc7;
+    public static final int GOTO_W = 0xc8;
+    public static final int JSR_W = 0xc9;
+    public static final int BREAKPOINT = 0xca;
+    public static final int IMPDEP1 = 0xfe;
+    public static final int IMPDEP2 = 0xff;
 
 }

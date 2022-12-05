@@ -1,12 +1,12 @@
 package jvm.classfile;
 
-import jvm.Method;
+import jvm.runtime.Method;
 import jvm.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import static jvm.Method.Code;
-import static jvm.Method.ExceptionTableItem;
+import static jvm.runtime.Method.Code;
+import static jvm.runtime.Method.ExceptionTableItem;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;

@@ -1,6 +1,6 @@
 package jvm.instruction;
 
-import jvm.Frame;
+import jvm.runtime.Frame;
 
 public interface Instruction {
 

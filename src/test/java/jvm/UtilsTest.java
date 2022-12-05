@@ -1,6 +1,8 @@
 package jvm;
 
 import jvm.classfile.ClassFile;
+import jvm.runtime.ClassLoader;
+import jvm.runtime.ClassLoaderTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,6 +35,16 @@ public class UtilsTest {
         assertEquals("java/lang/String", Utils.convertClassNameToSlash(clazz));
         assertEquals("java/lang/String", Utils.convertClassNameToSlash("java.lang.String"));
         assertEquals("java/lang/String", Utils.convertClassNameToSlash("java/lang/String"));
+    }
+
+    @Test
+    void getArgSlotSizeTest() {
+        assertEquals(0, Utils.getArgSlotSize("()V"));
+        assertEquals(4, Utils.getArgSlotSize("(II[CI)V"));
+        assertEquals(4, Utils.getArgSlotSize("(IILjava/lang/String;I)V"));
+        assertEquals(4, Utils.getArgSlotSize("(II[Ljava/lang/String;I)V"));
+        assertEquals(4, Utils.getArgSlotSize("([[[II[Ljava/lang/String;I)V"));
+        assertEquals(10, Utils.getArgSlotSize("([[[I[J[DI[Ljava/lang/String;IJD)V"), "([[[I[J[DI[Ljava/lang/String;IJD)V args slots is 10");
     }
 
 }
