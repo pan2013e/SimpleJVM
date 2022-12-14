@@ -1,8 +1,8 @@
 package jvm.instruction.jump;
 
 import jvm.instruction.Instruction;
+import jvm.misc.Utils;
 import jvm.runtime.Frame;
-import jvm.runtime.MetaSpace;
 
 public class Return implements Instruction {
 
@@ -13,7 +13,7 @@ public class Return implements Instruction {
         // iload
         // invokevirtual "Method java/io/PrintStream.println:(I)V"
         // TODO
-        MetaSpace.getMainEnv().pop();
+        Utils.doReturn0();
         advance(frame);
     }
 

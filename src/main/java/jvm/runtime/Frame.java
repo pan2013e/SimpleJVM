@@ -11,12 +11,15 @@ public class Frame {
     private final Slot[] operandStack;
     private int operandStackTop;
 
+    public int stat;
+
     public Frame(Method m) {
         localVars = new Slot[m.getMaxLocals()];
         operandStack = new Slot[m.getMaxStack()];
         operandStackTop = 0;
         pc = 0;
         method = m;
+        stat = 0;
     }
 
     // for tests only
@@ -89,10 +92,14 @@ public class Frame {
         return get(idx).ref;
     }
 
+    public Instance getThis(int slotSize) {
+        return operandStack[operandStackTop - 1 - slotSize].ref;
+    }
+
     /*
      * operandStack
      */
-    private void push(Slot val) {
+    public void push(Slot val) {
         operandStack[operandStackTop++] = val;
     }
 

@@ -1,16 +1,17 @@
 package jvm.classfile;
 
+import jvm.misc.Utils;
+import jvm.runtime.Field;
 import jvm.runtime.Method;
-import jvm.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import static jvm.runtime.Method.Code;
-import static jvm.runtime.Method.ExceptionTableItem;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+
+import static jvm.runtime.Method.Code;
+import static jvm.runtime.Method.ExceptionTableItem;
 
 public final class Types {
 
@@ -47,6 +48,14 @@ public final class Types {
         final U2 descriptorIndex;  // 字段描述符索引
         final U2 attributesCount;
         final AttributeInfo[] attributes;
+
+        public Field toField(ClassFile classFile) {
+            final CpInfo[] constantPool = classFile.getConstantPool();
+            final int fieldAccessFlags = accessFlags.val;
+            final String fieldName = Utils.getUtf8(constantPool, nameIndex.val);
+            final String fieldDescriptor = Utils.getUtf8(constantPool, descriptorIndex.val);
+            return new Field(fieldAccessFlags, fieldName, fieldDescriptor);
+        }
     }
 
     @AllArgsConstructor
@@ -58,6 +67,7 @@ public final class Types {
         final U2 attributesCount;
         final AttributeInfo[] attributes;
 
+        @SuppressWarnings("all")
         public Code getCode(ClassFile classFile) {
             Code code = null;
             final CpInfo[] constantPool = classFile.constantPool;

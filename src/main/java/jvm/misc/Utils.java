@@ -1,8 +1,13 @@
-package jvm;
+package jvm.misc;
 
-import static jvm.classfile.Types.*;
-import static jvm.Tags.*;
+import jvm.runtime.Frame;
+import jvm.runtime.MetaSpace;
+import jvm.runtime.Slot;
 
+import static jvm.classfile.Types.CpInfo;
+import static jvm.misc.Tags.*;
+
+@SuppressWarnings("DuplicatedCode")
 public class Utils {
 
     public static String getUtf8(CpInfo[] cp, int idx) {
@@ -109,9 +114,37 @@ public class Utils {
         return getDescriptorFromNameAndType(cp, nameAndTypeIdx);
     }
 
-//    public static String buildMethodDescriptor(String returnType, String... paramTypes) {
-//
-//    }
+    public static String getClassNameFromInterfaceMethodRef(CpInfo[] cp, int idx) {
+        final CpInfo cpInfo = cp[idx];
+        if(cpInfo.getTag().getVal() != Constant.CONSTANT_InterfaceMethodref) {
+            throw new IllegalStateException("not a interface method ref");
+        }
+        final byte[] info = cpInfo.getInfo();
+        final int classIdx = ((info[0] & 0xFF) << 8) | (info[1] & 0xFF);
+        return getClassName(cp, classIdx);
+    }
+
+    // get method name from InterfaceMethodRef
+    public static String getNameFromInterfaceMethodRef(CpInfo[] cp, int idx) {
+        final CpInfo cpInfo = cp[idx];
+        if(cpInfo.getTag().getVal() != Constant.CONSTANT_InterfaceMethodref) {
+            throw new IllegalStateException("not a interface method ref");
+        }
+        final byte[] info = cpInfo.getInfo();
+        final int nameAndTypeIdx = ((info[2] & 0xFF) << 8) | (info[3] & 0xFF);
+        return getNameFromNameAndType(cp, nameAndTypeIdx);
+    }
+
+    // get method descriptor from InterfaceMethodRef
+    public static String getDescriptorFromInterfaceMethodRef(CpInfo[] cp, int idx) {
+        final CpInfo cpInfo = cp[idx];
+        if(cpInfo.getTag().getVal() != Constant.CONSTANT_InterfaceMethodref) {
+            throw new IllegalStateException("not a interface method ref");
+        }
+        final byte[] info = cpInfo.getInfo();
+        final int nameAndTypeIdx = ((info[2] & 0xFF) << 8) | (info[3] & 0xFF);
+        return getDescriptorFromNameAndType(cp, nameAndTypeIdx);
+    }
 
     public static int getArgSlotSize(String descriptor) {
         int slots = 0;
@@ -149,8 +182,16 @@ public class Utils {
         return (accessFlags & AccessFlag.ACC_STATIC) != 0;
     }
 
+    public static boolean isAbstract(int accessFlags) {
+        return (accessFlags & AccessFlag.ACC_ABSTRACT) != 0;
+    }
+
     public static boolean isNative(int accessFlags) {
         return (accessFlags & AccessFlag.ACC_NATIVE) != 0;
+    }
+
+    public static boolean isInterface(int accessFlags) {
+        return (accessFlags & AccessFlag.ACC_INTERFACE) != 0;
     }
 
     public static boolean isDotClassName(String className) {
@@ -179,6 +220,39 @@ public class Utils {
             pathBuilder.append(":").append(path);
         }
         return pathBuilder.toString();
+    }
+
+    public static void doReturn(int slotSize) {
+        final Frame oldFrame = MetaSpace.getMainEnv().pop();
+        if(oldFrame.stat == FrameTag.FAKE_FRAME) {
+            oldFrame.stat = FrameTag.FAKE_FRAME_END;
+        }
+        if(slotSize == 0) {
+            return;
+        }
+        final Frame current = MetaSpace.getMainEnv().peek();
+        if(slotSize == 1) {
+            current.push(oldFrame.pop());
+        } else if(slotSize == 2) {
+            final Slot v2 = oldFrame.pop();
+            final Slot v1 = oldFrame.pop();
+            current.push(v1);
+            current.push(v2);
+        } else {
+            throw new IllegalStateException("slot size must be 0, 1 or 2");
+        }
+    }
+
+    public static void doReturn0() {
+        doReturn(0);
+    }
+
+    public static void doReturn1() {
+        doReturn(1);
+    }
+
+    public static void doReturn2() {
+        doReturn(2);
     }
 
 }

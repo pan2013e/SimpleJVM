@@ -1,8 +1,9 @@
 package jvm.runtime;
 
-import jvm.Utils;
+import jvm.builtin.NativeMethod;
 import jvm.instruction.Instruction;
 import jvm.instruction.Opcodes;
+import jvm.misc.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,7 +13,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static jvm.classfile.Types.*;
+import static jvm.classfile.Types.AttributeInfo;
+import static jvm.classfile.Types.CpInfo;
 
 public class Method {
 
@@ -22,6 +24,7 @@ public class Method {
     final String descriptor;
     final Code code;
 
+    @Getter
     Class clazz;
 
     Map<Integer, Instruction> instructions;
@@ -89,11 +92,41 @@ public class Method {
     }
 
     public int getArgSlotSize() {
-        return Utils.getArgSlotSize(descriptor);
+        final int size = Utils.getArgSlotSize(descriptor);
+        if(Utils.isStatic(accessFlags)) {
+            return size;
+        }
+        return size + 1; // `this` pointer
     }
 
     public String getKey() {
         return clazz.name + "_" + name + "_" + descriptor;
+    }
+
+    public boolean isNative() {
+        return Utils.isNative(accessFlags);
+    }
+
+    public boolean isStatic() {
+        return Utils.isStatic(accessFlags);
+    }
+
+    public void invoke() {
+        if(isNative()) {
+            NativeMethod nm = MetaSpace.findNativeMethod(getKey());
+            if(nm == null) {
+                throw new RuntimeException("native method not found: " + getKey());
+            }
+            nm.eval(MetaSpace.getMainEnv().peek());
+        } else {
+            Frame newFrame = new Frame(this);
+            final Frame old = MetaSpace.getMainEnv().peek();
+            final int slots = getArgSlotSize();
+            for(int i = slots - 1; i >= 0; i--) {
+                newFrame.set(i, old.pop());
+            }
+            MetaSpace.getMainEnv().push(newFrame);
+        }
     }
 
 }

@@ -1,5 +1,6 @@
-package jvm;
+package jvm.misc;
 
+@SuppressWarnings("unused")
 public final class Tags {
 
     public static final class Constant {
@@ -45,6 +46,11 @@ public final class Tags {
         public static final int ACC_SYNTHETIC    = 0x1000; // class, field, method
         public static final int ACC_ANNOTATION   = 0x2000; // class
         public static final int ACC_ENUM         = 0x4000; // class, field
+    }
+
+    public static final class FrameTag {
+        public static final int FAKE_FRAME     = 1;
+        public static final int FAKE_FRAME_END = 2;
     }
 
 }

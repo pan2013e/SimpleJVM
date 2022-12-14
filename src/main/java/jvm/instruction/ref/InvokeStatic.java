@@ -1,8 +1,7 @@
 package jvm.instruction.ref;
 
-import jvm.Utils;
-import jvm.builtin.NativeMethod;
 import jvm.instruction.Instruction;
+import jvm.runtime.Class;
 import jvm.runtime.Frame;
 import jvm.runtime.MetaSpace;
 import jvm.runtime.Method;
@@ -23,24 +22,12 @@ public class InvokeStatic implements Instruction {
 
     @Override
     public void eval(Frame frame) {
-        Method m = MetaSpace.getClassLoader()
-                    .findClass(className)
-                    .getStaticMethod(methodName, methodDescriptor);
-        if(Utils.isNative(m.getAccessFlags())) {
-            final NativeMethod nm = MetaSpace.findNativeMethod(m.getKey());
-            if(nm == null) {
-                throw new IllegalStateException("native method " + m.getKey() + " not found");
-            }
-            nm.eval(frame);
-        } else {
-            Frame newFrame = new Frame(m);
-            final Frame oldFrame = MetaSpace.getMainEnv().peek();
-            final int slots = m.getArgSlotSize();
-            for(int i = slots - 1;i >= 0;i--) {
-                newFrame.set(i, oldFrame.pop());
-            }
-            MetaSpace.getMainEnv().push(newFrame);
-        }
+        // No need to check polymorphism,
+        // since static methods cannot be overridden
+        final Class clazz = MetaSpace.getClassLoader().findClass(className);
+        Method m = clazz.getStaticMethod(methodName, methodDescriptor);
+        clazz.clinit();
+        m.invoke();
         advance(frame);
     }
 

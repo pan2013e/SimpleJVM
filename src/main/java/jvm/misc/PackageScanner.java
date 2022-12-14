@@ -1,4 +1,4 @@
-package jvm;
+package jvm.misc;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +23,7 @@ public class PackageScanner {
 
     private final String packageName;
 
-    private Class<? extends Annotation> scannedAnnot;
+    private final Class<? extends Annotation> scannedAnnot;
 
     public PackageScanner(Class<?> baseClass,
                           Class<? extends Annotation> annotClass) throws IOException {

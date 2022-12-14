@@ -2,22 +2,23 @@ package jvm;
 
 import jvm.builtin.NativeMethod;
 import jvm.builtin.RegisterNativeMethod;
-import jvm.runtime.*;
+import jvm.misc.PackageScanner;
+import jvm.misc.Utils;
+import jvm.runtime.Class;
 import jvm.runtime.ClassLoader;
+import jvm.runtime.*;
 import lombok.NonNull;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 public class Driver {
 
     private static final String CURRENT_DIR = System.getProperty("user.dir");
     private static final String RT_JAR = "src/main/resources/rt.jar";
-
     private static String classPath = Utils.classPathConcat(CURRENT_DIR, RT_JAR);
-
     private static String className = null;
+    private static final int maxStack = 1024;
 
     public static void parseArgs(String[] args) {
         if (args.length == 0) {
@@ -57,9 +58,9 @@ public class Driver {
     public static void VMInit(@NonNull final String classPath,
                               @NonNull final String className) {
         MetaSpace.setClassLoader(new ClassLoader(classPath));
-        final Method main = MetaSpace.getClassLoader()
-                                .findClass(className)
-                                .getStaticMethod("main", "([Ljava/lang/String;)V");
+        final Class mainClass = MetaSpace.getClassLoader()
+                                .findClass(className);
+        final Method main = mainClass.getStaticMethod("main", "([Ljava/lang/String;)V");
         if(main == null) {
             System.out.println("main method not found");
             System.exit(1);
@@ -70,8 +71,9 @@ public class Driver {
             e.printStackTrace();
             System.exit(1);
         }
-        MetaSpace.setMainEnv(new VMStack(128));
+        MetaSpace.setMainEnv(new VMStack(maxStack));
         MetaSpace.getMainEnv().push(new Frame(main));
+        mainClass.clinit();
     }
 
     public static void main(String[] args) {

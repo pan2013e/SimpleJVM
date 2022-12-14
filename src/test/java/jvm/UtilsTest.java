@@ -1,11 +1,13 @@
 package jvm;
 
 import jvm.classfile.ClassFile;
+import jvm.misc.Utils;
 import jvm.runtime.ClassLoader;
 import jvm.runtime.ClassLoaderTest;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UtilsTest {
 

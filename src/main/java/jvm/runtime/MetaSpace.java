@@ -12,6 +12,14 @@ public final class MetaSpace {
     private static ClassLoader loader;
     private static VMStack main;
 
+    // for system tests only!
+    public static void clear() {
+        CLASS_MAP.clear();
+        NATIVE_METHOD_MAP.clear();
+        loader = null;
+        main = null;
+    }
+
     public static VMStack getMainEnv() {
         return main;
     }

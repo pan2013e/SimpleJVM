@@ -1,18 +1,21 @@
 package jvm.instruction;
 
-import jvm.Utils;
 import jvm.instruction.branch.*;
 import jvm.instruction.constant.*;
-import jvm.instruction.jump.*;
+import jvm.instruction.jump.Goto;
+import jvm.instruction.jump.IReturn;
+import jvm.instruction.jump.Return;
 import jvm.instruction.load.*;
 import jvm.instruction.math.*;
 import jvm.instruction.ref.*;
+import jvm.instruction.stack.*;
 import jvm.instruction.store.*;
-
-import static jvm.classfile.Types.*;
+import jvm.misc.Utils;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+
+import static jvm.classfile.Types.CpInfo;
 
 @SuppressWarnings("unused")
 public final class Opcodes {
@@ -38,15 +41,34 @@ public final class Opcodes {
             case BIPUSH -> new BiPush(dis.readByte());
             case SIPUSH -> new SiPush(dis.readShort());
             case ISTORE -> new IStore(dis.readUnsignedByte());
+            case ASTORE -> new AStore(dis.readUnsignedByte());
             case ISTORE_0 -> new IStore0();
             case ISTORE_1 -> new IStore1();
             case ISTORE_2 -> new IStore2();
             case ISTORE_3 -> new IStore3();
+            case ASTORE_0 -> new AStore0();
+            case ASTORE_1 -> new AStore1();
+            case ASTORE_2 -> new AStore2();
+            case ASTORE_3 -> new AStore3();
             case ILOAD -> new ILoad(dis.readUnsignedByte());
+            case ALOAD -> new ALoad(dis.readUnsignedByte());
             case ILOAD_0 -> new ILoad0();
             case ILOAD_1 -> new ILoad1();
             case ILOAD_2 -> new ILoad2();
             case ILOAD_3 -> new ILoad3();
+            case ALOAD_0 -> new ALoad0();
+            case ALOAD_1 -> new ALoad1();
+            case ALOAD_2 -> new ALoad2();
+            case ALOAD_3 -> new ALoad3();
+            case POP -> new Pop();
+            case POP2 -> new Pop2();
+            case DUP -> new Dup();
+            case DUP_X1 -> new DupX1();
+            case DUP_X2 -> new DupX2();
+            case DUP2 -> new Dup2();
+            case DUP2_X1 -> new Dup2X1();
+            case DUP2_X2 -> new Dup2X2();
+            case SWAP -> new Swap();
             case IADD -> new IAdd();
             case LADD -> new LAdd();
             case FADD -> new FAdd();
@@ -101,9 +123,33 @@ public final class Opcodes {
                         Utils.getNameFromFieldRef(cp, idx),
                         Utils.getDescriptorFromFieldRef(cp, idx));
             }
+            case PUTSTATIC -> {
+                int idx = dis.readUnsignedShort();
+                yield new PutStatic(Utils.getClassNameFromFieldRef(cp, idx),
+                        Utils.getNameFromFieldRef(cp, idx),
+                        Utils.getDescriptorFromFieldRef(cp, idx));
+            }
+            case GETFIELD -> {
+                int idx = dis.readUnsignedShort();
+                yield new GetField(Utils.getClassNameFromFieldRef(cp, idx),
+                        Utils.getNameFromFieldRef(cp, idx),
+                        Utils.getDescriptorFromFieldRef(cp, idx));
+            }
+            case PUTFIELD -> {
+                int idx = dis.readUnsignedShort();
+                yield new PutField(Utils.getClassNameFromFieldRef(cp, idx),
+                        Utils.getNameFromFieldRef(cp, idx),
+                        Utils.getDescriptorFromFieldRef(cp, idx));
+            }
             case INVOKEVIRTUAL -> {
                 int idx = dis.readUnsignedShort();
                 yield new InvokeVirtual(Utils.getClassNameFromMethodRef(cp, idx),
+                        Utils.getNameFromMethodRef(cp, idx),
+                        Utils.getDescriptorFromMethodRef(cp, idx));
+            }
+            case INVOKESPECIAL -> {
+                int idx = dis.readUnsignedShort();
+                yield new InvokeSpecial(Utils.getClassNameFromMethodRef(cp, idx),
                         Utils.getNameFromMethodRef(cp, idx),
                         Utils.getDescriptorFromMethodRef(cp, idx));
             }
@@ -112,6 +158,19 @@ public final class Opcodes {
                 yield new InvokeStatic(Utils.getClassNameFromMethodRef(cp, idx),
                         Utils.getNameFromMethodRef(cp, idx),
                         Utils.getDescriptorFromMethodRef(cp, idx));
+            }
+            case INVOKEINTERFACE -> {
+                int idx = dis.readUnsignedShort();
+                int count = dis.readByte();
+                int zero = dis.readByte();
+                assert zero == 0;
+                yield new InvokeInterface(Utils.getClassNameFromInterfaceMethodRef(cp, idx),
+                        Utils.getNameFromInterfaceMethodRef(cp, idx),
+                        Utils.getDescriptorFromInterfaceMethodRef(cp, idx));
+            }
+            case NEW -> {
+                int idx = dis.readUnsignedShort();
+                yield new New(Utils.getClassName(cp, idx));
             }
             default -> throw new IllegalStateException(String.format("Unimplemented opcode: 0x%x\n", opcode));
         };

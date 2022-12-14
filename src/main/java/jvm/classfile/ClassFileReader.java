@@ -1,13 +1,14 @@
 package jvm.classfile;
 
-import static jvm.classfile.Types.*;
-import static jvm.Tags.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+
+import static jvm.classfile.Types.*;
+import static jvm.misc.Tags.Constant;
 
 @RequiredArgsConstructor
 public class ClassFileReader {
@@ -54,6 +55,7 @@ public class ClassFileReader {
         }
     }
 
+    @SuppressWarnings("all")
     private byte[] readBytes(int size) throws IOException {
         byte[] data = new byte[size];
         dis.read(data);
@@ -74,6 +76,7 @@ public class ClassFileReader {
             int tag = dis.readUnsignedByte();
             byte[] info;
             int step = 0;
+            //noinspection EnhancedSwitchMigration
             switch (tag) {
                 case Constant.CONSTANT_Fieldref:
                 case Constant.CONSTANT_Methodref:

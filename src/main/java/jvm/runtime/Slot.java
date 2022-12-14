@@ -1,9 +1,9 @@
 package jvm.runtime;
 
-final class Slot {
+public final class Slot {
 
-    public final int val;      // primitive type
-    public final Instance ref; // reference type
+    public int val;      // primitive type
+    public Instance ref; // reference type
 
     private Slot(int val, Instance ref) {
         this.val = val;

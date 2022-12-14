@@ -1,13 +1,10 @@
 package jvm.runtime;
 
-import jvm.Utils;
 import jvm.classfile.ClassFile;
 import jvm.classfile.ClassFileReader;
+import jvm.misc.Utils;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-
-import static jvm.classfile.Types.*;
-import static jvm.Tags.*;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -15,6 +12,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import static jvm.classfile.Types.*;
+import static jvm.misc.Tags.ClassStat;
 
 @RequiredArgsConstructor
 public class ClassLoader {
@@ -42,12 +42,33 @@ public class ClassLoader {
             superClass = findClass(superClassName);
         }
         // now create current class
+        // create interfaces
+        final Class[] interfaces = new Class[classFile.getInterfacesCount().getVal()];
+        for(int i = 0; i < interfaces.length; i++) {
+            final int interfaceIdx = classFile.getInterfaces()[i].getVal();
+            final String interfaceName = Utils.getClassName(constantPool, interfaceIdx);
+            interfaces[i] = findClass(interfaceName);
+        }
+        boolean hasDefaultMethod = false;
+        // create methods
         Method[] methods = new Method[classFile.getMethodsCount().getVal()];
         for(int i = 0; i < methods.length; i++) {
-            MethodInfo methodInfo = classFile.getMethods()[i];
+            final MethodInfo methodInfo = classFile.getMethods()[i];
             methods[i] = methodInfo.toMethod(classFile);
+            if(!hasDefaultMethod && Utils.isInterface(classFile.getAccessFlags().getVal())
+                    && !Utils.isStatic(methods[i].accessFlags)
+                    && !Utils.isAbstract(methods[i].accessFlags)) {
+                hasDefaultMethod = true;
+            }
         }
-        final Class clazz = new Class(className, classFile, superClass, methods);
+        // create fields
+        Field[] fields = new Field[classFile.getFieldsCount().getVal()];
+        for(int i = 0; i < fields.length; i++) {
+            final FieldInfo fieldInfo = classFile.getFields()[i];
+            fields[i] = fieldInfo.toField(classFile);
+        }
+        final Class clazz = new Class(className, classFile,
+                superClass, fields, methods, interfaces, hasDefaultMethod);
         clazz.stat = ClassStat.CLASS_LOADED;
         MetaSpace.putClass(className, clazz);
         return clazz;
@@ -59,8 +80,12 @@ public class ClassLoader {
             linkClass(clazz.superClass);
         }
         // verification, skipped
-        // preparation
-        // TODO: init static fields
+        // preparation, initialize static fields
+        for(Field f : clazz.fields) {
+            if(Utils.isStatic(f.accessFlags)) {
+                f.init();
+            }
+        }
         // resolution, skipped
         clazz.stat = ClassStat.CLASS_LINKED;
     }
