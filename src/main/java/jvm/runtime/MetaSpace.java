@@ -7,16 +7,16 @@ import java.util.Map;
 
 public final class MetaSpace {
 
-    private static final Map<String, Class> CLASS_MAP = new HashMap<>();
+    private static final String JAVA_HOME = "src/main/resources";
+    private static final String JAVA_RT = JAVA_HOME + "/rt.jar";
+
     private static final Map<String, NativeMethod> NATIVE_METHOD_MAP = new HashMap<>();
-    private static ClassLoader loader;
+    private static ClassLoader bootstrapLoader, systemLoader;
     private static VMStack main;
 
-    // for system tests only!
-    public static void clear() {
-        CLASS_MAP.clear();
-        NATIVE_METHOD_MAP.clear();
-        loader = null;
+    public static void init() {
+        bootstrapLoader = ClassLoader.createBootstrapClassLoader(JAVA_RT);
+        systemLoader = null;
         main = null;
     }
 
@@ -29,22 +29,23 @@ public final class MetaSpace {
     }
 
     public static Class findClass(String className) {
-        return CLASS_MAP.get(className);
-    }
-
-    public static void putClass(String className, Class clazz) {
-        if(CLASS_MAP.containsKey(className)) {
-            throw new IllegalStateException("class " + className + " has been loaded");
-        }
-        CLASS_MAP.put(className, clazz);
+        return systemLoader.findClass(className);
     }
 
     public static void setClassLoader(ClassLoader classLoader) {
-        loader = classLoader;
+        systemLoader = classLoader;
     }
 
     public static ClassLoader getClassLoader() {
-        return loader;
+        return getSystemClassLoader();
+    }
+
+    public static ClassLoader getSystemClassLoader() {
+        return systemLoader;
+    }
+
+    public static ClassLoader getBootstrapClassLoader() {
+        return bootstrapLoader;
     }
 
     public static NativeMethod findNativeMethod(String key) {

@@ -4,25 +4,59 @@ import jvm.classfile.ClassFile;
 import jvm.classfile.ClassFileReader;
 import jvm.misc.Utils;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static jvm.classfile.Types.*;
 import static jvm.misc.Tags.ClassStat;
 
-@RequiredArgsConstructor
 public class ClassLoader {
 
     /* classPath = PATH1:PATH2:... */
-    @NonNull private final String classPath;
+    @NonNull
+    private final String classPath;
 
-    public Class defineClass(@NonNull ClassFile classFile) {
+    private final ClassLoader parent;
+
+    private final Map<String, Class> classMap = new HashMap<>();
+
+    private ClassLoader(@NonNull final String classPath, ClassLoader parent) {
+        this.classPath = classPath;
+        this.parent = parent;
+    }
+
+    public static ClassLoader createSystemClassLoader(@NonNull final String classPath) {
+        return new ClassLoader(classPath, MetaSpace.getBootstrapClassLoader());
+    }
+
+    static ClassLoader createBootstrapClassLoader(@NonNull final String classPath) {
+        return new ClassLoader(classPath, null);
+    }
+
+    // delegate super class loader to find class
+    public Class findClass(@NonNull String className) {
+        String name = Utils.convertClassNameToSlash(className);
+        Class cachedClass = classMap.get(name);
+        if(cachedClass != null) {
+            return cachedClass;
+        }
+        if(parent != null) {
+            Class clazz = parent.findClass(className);
+            if(clazz != null) {
+                return clazz;
+            }
+        }
+        return loadClass(className);
+    }
+
+    private Class defineClass(@NonNull ClassFile classFile) {
         // get current class name
         final CpInfo[] constantPool = classFile.getConstantPool();
         final String className = Utils.getClassName(constantPool, classFile.getThisClass().getVal());
@@ -70,11 +104,11 @@ public class ClassLoader {
         final Class clazz = new Class(className, classFile,
                 superClass, fields, methods, interfaces, hasDefaultMethod);
         clazz.stat = ClassStat.CLASS_LOADED;
-        MetaSpace.putClass(className, clazz);
+        putClass(className, clazz);
         return clazz;
     }
 
-    public void linkClass(@NonNull Class clazz) {
+    private void linkClass(@NonNull Class clazz) {
         // link super class first & recursively
         if(clazz.superClass != null && clazz.superClass.stat < ClassStat.CLASS_LINKED) {
             linkClass(clazz.superClass);
@@ -90,25 +124,24 @@ public class ClassLoader {
         clazz.stat = ClassStat.CLASS_LINKED;
     }
 
-    public Class findClass(@NonNull String className) {
-        String name = Utils.convertClassNameToSlash(className);
-        Class cachedClass = MetaSpace.findClass(name);
-        if(cachedClass != null) {
-            return cachedClass;
+    private Class loadClass(@NonNull String name) {
+        ClassFile classFile = loadClassFileFromClassPath(name);
+        if(classFile == null) {
+            return null;
         }
-        ClassFile classFile = loadClassFromClassPath(name);
         Class clazz = defineClass(classFile);
         linkClass(clazz);
         return clazz;
     }
 
-    // Support loading java.lang.* only
-    public ClassFile loadClassFromJar(@NonNull String jarPath, @NonNull java.lang.Class<?> clazz) {
-        final String name = Utils.convertClassNameToSlash(clazz);
-        return loadClassFromJar(jarPath, name);
+    private void putClass(String className, Class clazz) {
+        if(classMap.containsKey(className)) {
+            throw new IllegalStateException("class " + className + " has been loaded");
+        }
+        classMap.put(className, clazz);
     }
 
-    public ClassFile loadClassFromJar(@NonNull String jarPath, @NonNull String className) {
+    ClassFile loadClassFileFromJar(@NonNull String jarPath, @NonNull String className) {
         ZipFile jarFile;
         try {
             jarFile = new ZipFile(jarPath);
@@ -129,7 +162,7 @@ public class ClassLoader {
         }
     }
 
-    public ClassFile loadClassFromDir(@NonNull String dir, @NonNull String className) {
+     ClassFile loadClassFileFromDir(@NonNull String dir, @NonNull String className) {
         final Path path = Path.of(dir, Utils.convertClassNameToSlash(className) + ".class");
         final File file = path.toFile();
         if (!file.exists()) {
@@ -145,29 +178,22 @@ public class ClassLoader {
         }
     }
 
-    public ClassFile loadClassFromClassPath(@NonNull java.lang.Class<?> clazz) {
-        return loadClassFromClassPath(clazz.getName());
-    }
-
-    public ClassFile loadClassFromClassPath(@NonNull String className) {
+    public ClassFile loadClassFileFromClassPath(@NonNull String className) {
         final String[] paths = classPath.split(":");
         final String name = Utils.convertClassNameToSlash(className);
         ClassFile classFile = null;
         for (String path : paths) {
             if (path.endsWith(".jar")) {
                 try {
-                    classFile = loadClassFromJar(path, name);
+                    classFile = loadClassFileFromJar(path, name);
                     break;
                 } catch (IllegalStateException ignore) {}
             } else {
                 try {
-                    classFile = loadClassFromDir(path, name);
+                    classFile = loadClassFileFromDir(path, name);
                     break;
                 } catch (IllegalStateException ignore) {}
             }
-        }
-        if(classFile == null) {
-            throw new IllegalStateException("Cannot find class file: " + className);
         }
         return classFile;
     }

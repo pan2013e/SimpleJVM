@@ -4,6 +4,7 @@ import jvm.classfile.ClassFile;
 import jvm.misc.Utils;
 import jvm.runtime.ClassLoader;
 import jvm.runtime.ClassLoaderTest;
+import jvm.runtime.MetaSpace;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,16 +14,17 @@ public class UtilsTest {
 
     @Test
     void getUtf8Test() {
-        ClassLoader loader = new ClassLoader("src/test/resources/class");
-        ClassFile classFile = loader.loadClassFromClassPath("Test");
+        ClassLoader loader = ClassLoader.createSystemClassLoader(ClassLoaderTest.TEST_DIR);
+        ClassFile classFile = loader.loadClassFileFromClassPath("Test");
         String utf8 = Utils.getUtf8(classFile.getConstantPool(), 4);
         assertEquals("java/lang/Object", utf8);
     }
 
     @Test
     void getClassNameTest() {
-        ClassLoader loader = new ClassLoader(ClassLoaderTest.RT_JAR);
-        ClassFile classFile = loader.loadClassFromClassPath("java/lang/String");
+        MetaSpace.init();
+        ClassLoader loader = MetaSpace.getBootstrapClassLoader();
+        ClassFile classFile = loader.loadClassFileFromClassPath("java/lang/String");
         String className = Utils.getClassName(classFile.getConstantPool(), classFile.getThisClass().getVal());
         assertEquals("java/lang/String", className);
         String superClassName = Utils.getClassName(classFile.getConstantPool(), classFile.getSuperClass().getVal());

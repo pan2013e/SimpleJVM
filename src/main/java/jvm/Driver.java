@@ -14,9 +14,7 @@ import java.lang.reflect.InvocationTargetException;
 
 public class Driver {
 
-    private static final String CURRENT_DIR = System.getProperty("user.dir");
-    private static final String RT_JAR = "src/main/resources/rt.jar";
-    private static String classPath = Utils.classPathConcat(CURRENT_DIR, RT_JAR);
+    private static String classPath = System.getProperty("user.dir");
     private static String className = null;
     private static final int maxStack = 1024;
 
@@ -57,7 +55,8 @@ public class Driver {
 
     public static void VMInit(@NonNull final String classPath,
                               @NonNull final String className) {
-        MetaSpace.setClassLoader(new ClassLoader(classPath));
+        MetaSpace.init();
+        MetaSpace.setClassLoader(ClassLoader.createSystemClassLoader(classPath));
         final Class mainClass = MetaSpace.getClassLoader()
                                 .findClass(className);
         final Method main = mainClass.getStaticMethod("main", "([Ljava/lang/String;)V");

@@ -37,7 +37,7 @@ public class SystemTest {
 
     @AfterEach
     void resetMetaSpace() {
-        MetaSpace.clear();
+        MetaSpace.init();
     }
 
     @AfterAll
